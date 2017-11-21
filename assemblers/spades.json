@@ -1,0 +1,5 @@
+{
+  "pre": null,
+  "command": "spades.py -o {outdir} -1 {fwd} -2 {rev} --threads {cores} --careful",
+  "post": null
+}
