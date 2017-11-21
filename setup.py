@@ -8,7 +8,7 @@ from setuptools import setup, find_packages
 
 def _copy_assemblers():
 
-    assemblers = Path(__file__) / 'assemblers/'
+    assemblers = Path(__file__).parent / 'assemblers/'
     config_dir = Path.home() / '.local' / 'share' / 'qanda'
 
     config_dir.mkdir(parents=True, exist_ok=True)
