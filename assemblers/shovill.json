@@ -1,0 +1,5 @@
+{
+  "pre": null,
+  "command": "shovill --outdir {outdir} --R1 {fwd} --R2 {rev} --cpus {cores}",
+  "post": null
+}

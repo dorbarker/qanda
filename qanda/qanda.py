@@ -1,40 +1,48 @@
 #!/usr/bin/env python3
 
-import argparse
 import functools
 import io
 import json
-import logging
 import subprocess
+from pathlib import Path
+from typing import Dict, List, TypeVar
 
 import pandas as pd
+
 
 def arguments():
     pass
 
+
 def main():
     pass
 
-def get_runinfo(query_string, database):
 
-    query = ('esearch', '-db', database, '-query', query_string)
+# type hints
+assembler_dict = Dict[str, str]
+PandasDataFrame = TypeVar('pandas.core.frame.DataFrame')
 
-    query_result = subprocess.run(query,
-                                  check=True,
-                                  stdout=subprocess.PIPE)
+
+def get_runinfo(query: str, database: str) -> PandasDataFrame:
+
+    search = ('esearch', '-db', database, '-query', query)
+
+    search_result = subprocess.run(search,
+                                   check=True,
+                                   stdout=subprocess.PIPE)
 
     if database.lower() != 'sra':
 
         link = ('elink', '-target', 'sra')
 
         result = subprocess.run(link,
-                                input=query_result.stdout,
+                                input=search_result.stdout,
                                 check=True,
                                 stdout=subprocess.PIPE)
 
     else:
 
-        result = query_result
+        result = search_result
 
     fetch = ('efetch', '-format', 'runinfo')
 
@@ -46,8 +54,7 @@ def get_runinfo(query_string, database):
     return pd.read_csv(io.BytesIO(runinfo.stdout), header=0)
 
 
-def build_runinfo_table(queries, database):
-
+def build_runinfo_table(queries: List[str], database: str) -> PandasDataFrame:
 
     runinfo_lines = (get_runinfo(query, database) for query in queries)
 
@@ -56,13 +63,31 @@ def build_runinfo_table(queries, database):
     return runinfo_table
 
 
-def download_genome(acc, outdir):
+def download_genome(acc: str, outdir: Path) -> None:
 
-    fq_dump = ('fastq-dump', '--outdir', outdir, '--gzip', '--skip-technical',
+    out = str(outdir)
+    fq_dump = ('fastq-dump', '--outdir', out, '--gzip', '--skip-technical',
                '--readids', '--read-filter', 'pass', '--dumpbase',
                '--split-files', '--clip', acc)
 
     subprocess.run(fq_dump, check=True, stdout=subprocess.DEVNULL)
+
+
+def load_assembler(directory: Path, assembler: Path) -> assembler_dict:
+
+    assembler_path = directory / assembler
+
+    with assembler_path.open('r') as f:
+        assembler_config = json.load(f)
+
+    return assembler_config
+
+
+def format_config(assembler_config: assembler_dict, options: Dict) -> assembler_dict:
+
+    return {key: value.format(**options)
+            for key, value in assembler_config.items()}
+
 
 if __name__ == '__main__':
     main()
