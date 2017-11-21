@@ -23,7 +23,6 @@ setup(
     name='qanda',
     version='0.1',
     packages=find_packages(),
-    scripts=['qanda.py'],
     install_requires=['pandas'],
     package_data={
         'assemblers': ['*.json']
