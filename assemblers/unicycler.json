@@ -1,0 +1,5 @@
+{
+  "pre": null,
+  "command": "unicycler -1 {fwd} -2 {rev} -o {outdir} --threads {cores}",
+  "post": null
+}

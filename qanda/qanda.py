@@ -63,7 +63,11 @@ def main():
 def qanda(queries: List[str], database: str, assembler: str, results: Path, cores: int):
 
     def setup_directories() -> Tuple[Path, Path, Path]:
+        """
+        Ensures various results directories exist
 
+        :return: 3-Tuple of Paths
+        """
         fastq = results / 'fastqs'
         assembly = results / 'assemblies'
         biosample = results / 'biosamples'
@@ -80,16 +84,25 @@ def qanda(queries: List[str], database: str, assembler: str, results: Path, core
 
     runinfo = build_runinfo_table(queries, database)
 
-    runinfo.to_csv(results / 'runinfo.csv')
+    runinfo.to_csv(results / 'runinfo.csv', index=False)
 
-    # for acc in runinfo['Run']:
-    #     download_genome(acc, fastqs)
+    for acc in runinfo['Run']:
+        download_genome(acc, fastqs)
 
     for acc in runinfo['Run']:
         assemble(acc, fastqs, assemblies, cores, assembler_config)
 
 
 def get_metadata(query: str, database: str) -> PandasDataFrame:
+    """
+    Retrieves sequencing run metadata for the given query using external
+    NCBI Entrez Direct utilities.
+
+    :param query: An NCBI query or accession number
+    :param database: NCBI database against which the query will be made
+    :return: A pandas DataFrame containing the resultant runinfo table
+    """
+
     # TODO add biosample fetching
 
     search = ('esearch', '-db', database, '-query', query)
@@ -122,7 +135,14 @@ def get_metadata(query: str, database: str) -> PandasDataFrame:
 
 
 def build_runinfo_table(queries: List[str], database: str) -> PandasDataFrame:
+    """
+    Constructs a table of NCBI SRC runinfo.
 
+    :param queries: A list of queries to be searched for against database.
+                    These can be any valid NCBI query.
+    :param database: The database to be searched against, e.g. SRA, BioSample, etc.
+    :return: A pandas DataFrame of NCBI SRA runinfo
+    """
     runinfo_lines = (get_metadata(query, database) for query in queries)
 
     runinfo_table = functools.reduce(pd.DataFrame.append, runinfo_lines)
@@ -131,6 +151,14 @@ def build_runinfo_table(queries: List[str], database: str) -> PandasDataFrame:
 
 
 def download_genome(acc: str, outdir: Path) -> None:
+    """
+    Downloads an SRA accession using fastq-dump and write the result
+    in FASTQ format.
+
+    :param acc:  NCBI SRA FASTQ accession to download
+    :param outdir: Directory to which all FASTQs will written
+    :return: None
+    """
 
     out = str(outdir)
     fq_dump = ('fastq-dump', '--outdir', out, '--gzip', '--skip-technical',
@@ -141,7 +169,14 @@ def download_genome(acc: str, outdir: Path) -> None:
 
 
 def load_assembler(directory: Path, assembler: str) -> assembler_dict:
+    """
+    Loads a configuration file for a given sequence assembler backend.
 
+    :param directory: Directory containing the assembler config JSONs
+    :param assembler: The basename of the assembler
+    :return: A dictionary containing command templates for running the
+             selected assembler
+    """
     assembler_path = directory / assembler
 
     with assembler_path.with_suffix('.json').open('r') as f:
@@ -152,6 +187,17 @@ def load_assembler(directory: Path, assembler: str) -> assembler_dict:
 
 def assemble(accession: str, fastqs: Path, assemblies: Path, cores: int,
              assembler_config: assembler_dict):
+    """
+    Formats and executes a command to run an external assembler backend.
+
+    :param accession: NCBI SRA accession number
+    :param fastqs: Directory containing all FASTQs
+    :param assemblies: Directory to which the FASTA assembly will be written
+    :param cores: CPU cores to be used by the assembler
+    :param assembler_config: Dictionary containing template commands for the
+                             assembler
+    :return: None
+    """
 
     fastq_template = '{}_pass_{{}}.fastq.gz'.format(accession)
 
@@ -166,9 +212,15 @@ def assemble(accession: str, fastqs: Path, assemblies: Path, cores: int,
                          for key, value in assembler_config.items()
                          if value}
 
-    for cmd in formatted_options:
+    # enforce ordering
+    for command in ('pre', 'command', 'post'):
 
-        subprocess.run(shlex.split(formatted_options[cmd]), check=True)
+        try:
+            cmd = shlex.split(formatted_options[command])
+            subprocess.run(cmd, check=True)
+
+        except KeyError:
+            pass
 
 
 if __name__ == '__main__':
