@@ -89,9 +89,9 @@ def qanda(queries: List[str], database: str, assembler: str, results: Path, core
         assembly = results / 'assemblies'
         biosample = results / 'biosamples'
 
-        fastq.mkdir(exist_ok=True)
-        assembly.mkdir(exist_ok=True)
-        biosample.mkdir(exist_ok=True)
+        fastq.mkdir(parents=True, exist_ok=True)
+        assembly.mkdir(parents=True, exist_ok=True)
+        biosample.mkdir(parents=True, exist_ok=True)
 
         return fastq, assembly, biosample
 
