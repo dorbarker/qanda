@@ -4,8 +4,8 @@
 
 `python3 -m pip install git+https://github.com/dorbarker/qanda.git`
 
-A simple tool for quering NCBI databases, downloading the results,
-and assembling them using a modular assembler backend.
+A simple tool for querying NCBI databases, downloading the results,
+and assembling them using a modular assembler backend all in a single command.
 
 Qanda provides plugins for spades, shovill, and unicycler as
 assembler backends. These plugins describe three commands which can be used to
@@ -62,7 +62,15 @@ optional arguments:
   --cores CORES         Number of CPU cores [1]
 ```
 
-### External dependencies
+```
+qanda --assembler spades --results ~/Desktop/qanda_test/ --database biosample --cores 24 SAMN07646583 SAMN07646584
+```
 
-- [NCBI Entrez Direct](https://www.ncbi.nlm.nih.gov/books/NBK179288/)
-- [NCBI SRA Toolkit](https://trace.ncbi.nlm.nih.gov/Traces/sra/sra.cgi?view=toolkit_doc&f=std)
+### Dependencies
+Program versions listed below are merely minimum tested versions.
+Other versions may work as well.
+
+- Python 3.5
+    - pandas 0.21.0
+- [NCBI Entrez Direct](https://www.ncbi.nlm.nih.gov/books/NBK179288/) 2.8.2
+- [NCBI SRA Toolkit](https://trace.ncbi.nlm.nih.gov/Traces/sra/sra.cgi?view=toolkit_doc&f=std) 6.00
