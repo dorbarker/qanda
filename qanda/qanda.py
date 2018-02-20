@@ -256,6 +256,7 @@ def assemble(accession: str, fastqs: Path, assemblies: Path, cores: int,
     fastq_template = '{}_pass_{{}}.fastq.gz'.format(accession)
 
     options = {
+        'acc':      accession,
         'fwd':      fastqs / fastq_template.format(1),
         'rev':      fastqs / fastq_template.format(2),
         'outdir':   assemblies / accession,
