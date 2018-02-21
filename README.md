@@ -60,6 +60,7 @@ optional arguments:
   --database DATABASE   NCBI subject database [sra]
   --results RESULTS     Results directory ["."]
   --cores CORES         Number of CPU cores [1]
+  --email EMAIL         Email address required by NCBI
 ```
 
 ```
@@ -72,5 +73,4 @@ Other versions may work as well.
 
 - Python 3.5
     - pandas 0.21.0
-- [NCBI Entrez Direct](https://www.ncbi.nlm.nih.gov/books/NBK179288/) 2.8.2
-- [NCBI SRA Toolkit](https://trace.ncbi.nlm.nih.gov/Traces/sra/sra.cgi?view=toolkit_doc&f=std) 6.00
+    - biopython 1.70

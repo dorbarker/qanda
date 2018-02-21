@@ -21,9 +21,9 @@ def _copy_assemblers():
 
 setup(
     name='qanda',
-    version='0.1',
+    version='0.2',
     packages=find_packages(),
-    install_requires=['pandas'],
+    install_requires=['biopython', 'pandas'],
     package_data={
         'assemblers': ['*.json']
     },
