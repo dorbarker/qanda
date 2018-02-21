@@ -27,6 +27,7 @@ from pathlib import Path
 from typing import Dict, List, Tuple, TypeVar
 
 import pandas as pd
+from Bio import Entrez
 
 # type hints
 assembler_dict = Dict[str, str]
@@ -63,6 +64,10 @@ def arguments():
                         type=int,
                         help='Number of CPU cores [1]')
 
+    parser.add_argument('--email',
+                        required=True,
+                        help='Email address required by NCBI')
+
     parser.add_argument('queries',
                         nargs='+',
                         help='NCBI queries')
@@ -73,6 +78,8 @@ def arguments():
 def main():
 
     args = arguments()
+
+    Entrez.email = args.email
 
     qanda(args.queries, args.database, args.assembler, args.results, args.cores)
 
@@ -110,6 +117,41 @@ def qanda(queries: List[str], database: str, assembler: str, results: Path, core
         assemble(acc, fastqs, assemblies, cores, assembler_config)
 
 
+def esearch(query: str, database: str) -> str:
+
+    with Entrez.esearch(db=database, term=query, retmax=99999) as handle:
+
+        record = Entrez.read(handle)
+
+    record_ids = record['IdList']
+
+    if len(record_ids) > 1:
+        search_result = ','.join(record_ids)
+
+    else:
+        search_result = record_ids[0]
+
+    return search_result
+
+
+def elink(ids: str, sourcedb: str, target: str):
+
+    linkname = '{}_{}'.format(sourcedb, target)
+
+    with Entrez.elink(dbfrom=sourcedb, linkname=linkname, id=ids) as h:
+        elink_result = Entrez.read(h)
+
+    return elink_result[0]['LinkSetDb'][0]['Link'][0]['Id']
+
+
+def efetch(ids: str, database: str, rettype='') -> str:
+
+    result = Entrez.efetch(db=database, id=ids,
+                           rettype=rettype, retmode='text')
+
+    return result.read()
+
+
 def get_metadata(query: str, database: str, biosamples: Path) -> PandasDataFrame:
     """
     Retrieves sequencing run metadata for the given query using external
@@ -121,60 +163,36 @@ def get_metadata(query: str, database: str, biosamples: Path) -> PandasDataFrame
     :return: A pandas DataFrame containing the resultant runinfo table
     """
 
-    def download_biosample(esearch_res: subprocess.CompletedProcess):
-
-        efetch = ('efetch',)
+    def download_biosample(esearch_res: str):
 
         if database.lower() != 'biosample':
 
-            biosample_link = ('elink', '-target', 'biosample')
-
-            biosample_link_result = subprocess.run(biosample_link,
-                                                   input=esearch_res.stdout,
-                                                   check=True,
-                                                   stdout=subprocess.PIPE)
+            biosample_link_result = elink(esearch_res, database, 'biosample')
 
         else:
 
             biosample_link_result = esearch_res
 
-        biosample = subprocess.run(efetch,
-                                   input=biosample_link_result.stdout,
-                                   check=True,
-                                   stdout=subprocess.PIPE)
+        biosample = efetch(biosample_link_result, 'biosample')
 
         with (biosamples / 'biosamples.txt').open('a') as biosample_file:
-            biosample_file.write(biosample.stdout.decode('utf-8'))
+            biosample_file.write(biosample)
 
-    def download_runinfo(esearch_res: subprocess.CompletedProcess):
+    def download_runinfo(esearch_res: str):
 
         if database.lower() != 'sra':
 
-            sra_link = ('elink', '-target', 'sra')
-
-            sra = subprocess.run(sra_link,
-                                 input=esearch_res.stdout,
-                                 check=True,
-                                 stdout=subprocess.PIPE)
+            sra = elink(esearch_res, database, 'sra')
 
         else:
 
             sra = esearch_res
 
-        fetch = ('efetch', '-format', 'runinfo')
+        runinfo_table = efetch(sra, 'sra', rettype='runinfo')
 
-        runinfo_table = subprocess.run(fetch,
-                                       input=sra.stdout,
-                                       check=True,
-                                       stdout=subprocess.PIPE)
+        return pd.read_csv(io.StringIO(runinfo_table), header=0)
 
-        return pd.read_csv(io.BytesIO(runinfo_table.stdout), header=0)
-
-    search = ('esearch', '-db', database, '-query', query)
-
-    search_result = subprocess.run(search,
-                                   check=True,
-                                   stdout=subprocess.PIPE)
+    search_result = esearch(query, database)
 
     download_biosample(search_result)
 
